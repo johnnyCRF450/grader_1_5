@@ -184,3 +184,4 @@ def grade(
         feedback=feedback,
     )
     save_grade(report)
+    return report
