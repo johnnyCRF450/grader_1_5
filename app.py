@@ -19,7 +19,7 @@ from grades_store import available_weeks
 def run_grader(document_file, student_name, extra_text):
     if document_file is None and not extra_text.strip():
         msg = "Upload a document or paste submission text (or both)."
-        return msg, msg, msg, msg, gr.update(value=[], visible=False), "{}"
+        return msg, msg, msg, msg, [], "{}"
 
     label = student_name.strip() or "Student"
 
@@ -27,7 +27,7 @@ def run_grader(document_file, student_name, extra_text):
         report = grade(document_path=document_file, submission_text=extra_text, student_label=label)
     except Exception as e:
         err = f"Error during grading: {e}"
-        return err, err, err, err, gr.update(value=[], visible=False), "{}"
+        return err, err, err, err, [], "{}"
 
     doc   = report.document_info
     guard = report.guardrail_report
@@ -134,14 +134,7 @@ def run_grader(document_file, student_name, extra_text):
         ],
     })
 
-    return (
-        privacy_text,
-        xai_text,
-        rai_text,
-        report.feedback,
-        gr.update(value=corrections_data, visible=True),
-        report_meta,
-    )
+    return privacy_text, xai_text, rai_text, report.feedback, corrections_data, report_meta
 
 
 # ── RL Corrections ───────────────────────────────────────────────────────────
@@ -294,7 +287,6 @@ with gr.Blocks(title="Assignment 1.5 Grader") as demo:
                 datatype=["str", "str", "number", "number", "str", "str"],
                 col_count=(6, "fixed"),
                 interactive=True,
-                visible=False,
                 wrap=True,
             )
             save_corrections_btn = gr.Button("Save Corrections", variant="secondary")
