@@ -1,91 +1,108 @@
 """
 Analyzer Agent — extracts structured elements from a student submission.
-Supports text submissions and optional base64-encoded infographic images.
+Accepts extracted text plus a list of base64 images (from PDF/DOCX/image files).
+Sends all images in one multimodal request for holistic analysis.
 """
 
-import base64
 import anthropic
+
+MAX_IMAGES_PER_REQUEST = 10
 
 
 def analyze(
     client: anthropic.Anthropic,
     submission_text: str,
     context: str,
-    image_b64: str | None = None,
+    images: list[str] | None = None,
 ) -> str:
-    """Extract key elements. If image_b64 provided, analyzes the infographic visually."""
+    """
+    Extract key elements from the submission.
+    images: list of base64-encoded PNG strings extracted from the document.
+    """
+    images = images or []
+    has_images = len(images) > 0
 
     content = []
 
-    if image_b64:
+    # Prepend all images so Claude sees the visuals before the text prompt
+    for i, img_b64 in enumerate(images[:MAX_IMAGES_PER_REQUEST]):
         content.append({
             "type": "image",
-            "source": {
-                "type": "base64",
-                "media_type": "image/png",
-                "data": image_b64,
-            },
+            "source": {"type": "base64", "media_type": "image/png", "data": img_b64},
         })
-        content.append({
-            "type": "text",
-            "text": f"""Analyze both this infographic image AND the written submission text below.
 
-Written submission:
+    image_instruction = ""
+    if has_images:
+        image_instruction = f"""
+You have been provided {len(images)} image(s) extracted directly from the student's submitted document.
+For each image:
+  • Read ALL text visible in the image (OCR — treat it as content, not decoration)
+  • Describe the visual layout, structure, color coding, and design choices
+  • Identify every algorithm, label, arrow, grouping, or diagram element
+  • Note any legends, axes, or category headers
+  • Assess the visual quality and professionalism of the design
+  • Identify any diagrams showing relationships or hierarchies between algorithms
+"""
+
+    content.append({
+        "type": "text",
+        "text": f"""Analyze this student's Assignment 1.5 submission completely.
+{image_instruction}
+Extracted document text:
 ---
-{submission_text}
----
-
-Extract and label each section:
-
-1. ALGORITHMS_IDENTIFIED: List every ML algorithm named or described. Count them.
-2. LEARNING_TYPE_CLASSIFICATIONS: How did the student classify each algorithm (supervised/unsupervised)?
-3. DOMAIN_MAPPINGS: What domains (Tabular, CV, NLP, GenAI) did the student assign to each algorithm?
-4. EXAMPLES_PROVIDED: What real-world examples or use cases were included?
-5. VISUAL_DESCRIPTION: Describe the layout, structure, and design of the infographic (from the image if provided).
-6. REFLECTION_CONTENT: Summarize the student's personal reflection and what they say they learned.
-7. CLASSIFICATION_RATIONALE: Did the student explain WHY they classified algorithms as they did?
-8. MISSING_ELEMENTS: What required elements are absent or underdeveloped?
-9. ACCURACY_ISSUES: Note any factual errors in algorithm classification or description.""",
-        })
-    else:
-        content.append({
-            "type": "text",
-            "text": f"""Analyze this student submission for Assignment 1.5 (ML Algorithm Visual Framework).
-
-Submission:
----
-{submission_text}
+{submission_text if submission_text.strip() else "[No text extracted — evaluate from images only]"}
 ---
 
-Extract and label each section:
+Extract and label ALL of the following sections. Do not skip any section even if content is sparse:
 
-1. ALGORITHMS_IDENTIFIED: List every ML algorithm named or described. Count them.
-2. LEARNING_TYPE_CLASSIFICATIONS: How did the student classify each algorithm (supervised/unsupervised)?
-3. DOMAIN_MAPPINGS: What domains (Tabular, CV, NLP, GenAI) did the student assign to each algorithm?
-4. EXAMPLES_PROVIDED: What real-world examples or use cases were included?
-5. VISUAL_DESCRIPTION: Describe the visual framework as the student describes it (or note if not described).
-6. REFLECTION_CONTENT: Summarize the student's personal reflection and what they say they learned.
-7. CLASSIFICATION_RATIONALE: Did the student explain WHY they classified algorithms as they did?
-8. MISSING_ELEMENTS: What required elements are absent or underdeveloped?
-9. ACCURACY_ISSUES: Note any factual errors in algorithm classification or description.""",
-        })
+1. ALGORITHMS_IDENTIFIED
+   List every ML algorithm named or visible (in text OR images). Count them.
+   Format: "Algorithm Name — source (text/image/both)"
+
+2. LEARNING_TYPE_CLASSIFICATIONS
+   How did the student classify each algorithm (supervised/unsupervised/other)?
+   Note if this classification is correct or incorrect per the reference knowledge base.
+
+3. DOMAIN_MAPPINGS
+   What domains (Tabular, CV, NLP, GenAI) did the student assign to each algorithm?
+   Identify any missing or incorrect domain assignments.
+
+4. EXAMPLES_PROVIDED
+   List all real-world examples or use cases the student included, per algorithm.
+
+5. VISUAL_DESCRIPTION
+   Describe the infographic layout in detail: structure type (quadrant/flowchart/table/concept map),
+   color scheme, typography, visual hierarchy, use of icons/arrows/groupings.
+   Comment on how clearly the visual communicates relationships between algorithms.
+
+6. TEXT_IN_IMAGES
+   List all text extracted from the images (labels, headings, descriptions, legends).
+
+7. REFLECTION_CONTENT
+   Summarize the student's personal reflection: what they learned, challenges faced,
+   connections to course concepts, career applications.
+
+8. CLASSIFICATION_RATIONALE
+   Did the student explain WHY they classified algorithms as they did?
+   Quote or describe any reasoning provided.
+
+9. MISSING_ELEMENTS
+   List required assignment elements that are absent or underdeveloped.
+
+10. ACCURACY_ISSUES
+    Note any factual errors in algorithm classification, description, or domain assignment.
+    Be specific: "Student classified X as supervised — it is unsupervised." """,
+    })
 
     response = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=1500,
-        system=f"""You are an academic submission analyzer. Extract information objectively.
-Do not score — only identify what is present, what is absent, and flag factual errors.
+        max_tokens=2500,
+        system=f"""You are an academic submission analyzer with multimodal capabilities.
+You can read text, analyze visual designs, and extract content from embedded images.
+Extract information objectively and completely. Do not skip sections.
+Do not score — only identify what is present, what is absent, and what is inaccurate.
 
 {context}""",
         messages=[{"role": "user", "content": content}],
     )
     return response.content[0].text
-
-
-def load_image(image_path: str) -> str | None:
-    """Load an image file and return base64-encoded string."""
-    try:
-        with open(image_path, "rb") as f:
-            return base64.b64encode(f.read()).decode("utf-8")
-    except FileNotFoundError:
-        return None

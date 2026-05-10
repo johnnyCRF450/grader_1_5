@@ -2,20 +2,22 @@
 Orchestrator — coordinates the 7-agent grading pipeline for Assignment 1.5.
 
 Pipeline order:
-  Privacy Agent → Guardrail Agent → Context Agent → Analyzer Agent
-  → Scorer Agent → RAI Agent → Feedback Agent
+  Document Loader → Privacy Agent → Guardrail Agent → Context Agent
+  → Analyzer Agent → Scorer Agent → RAI Agent → Feedback Agent
+
+Guardrails are advisory only — grading always runs to completion.
 """
 
-import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 import anthropic
 
+from document_loader import load as load_document
 from agents.context_agent import build_context, get_rubric
 from agents.privacy_agent import scrub
 from agents.guardrail_agent import validate
-from agents.analyzer_agent import analyze, load_image
+from agents.analyzer_agent import analyze
 from agents.scorer_agent import score
 from agents.rai_agent import review, apply_adjustments
 from agents.feedback_agent import generate, _letter
@@ -26,14 +28,13 @@ RUBRIC_PATH = Path(__file__).parent / "rubric.json"
 @dataclass
 class GradeReport:
     student_label: str
+    document_info: dict
     privacy_report: dict
     guardrail_report: dict
     analysis: str
     scores: dict
     rai_report: dict
     feedback: str
-    halted: bool = False
-    halt_reason: str = ""
 
     @property
     def total_points(self) -> int:
@@ -52,17 +53,24 @@ class GradeReport:
         return _letter(self.percentage)
 
     def summary(self) -> str:
-        if self.halted:
-            return f"GRADING HALTED for {self.student_label}: {self.halt_reason}"
+        guard = self.guardrail_report
+        warnings = guard.get("warnings", [])
+        flag = guard.get("flag_for_human_review", False)
 
         lines = [
             f"Student: {self.student_label}",
+            f"Document: {self.document_info.get('format','?').upper()} | "
+            f"{self.document_info.get('page_count','?')} pages | "
+            f"{self.document_info.get('image_count', 0)} image(s) extracted",
             f"Grade: {self.total_points}/{self.total_possible} ({self.percentage}% — {self.letter_grade})",
             f"Overall confidence: {self.scores.get('overall_confidence', '?')}",
             f"RAI approved: {self.rai_report.get('rai_approved', '?')}",
-            "",
-            "Score Breakdown:",
         ]
+        if warnings:
+            lines.append(f"⚠ Guardrail warnings: {'; '.join(warnings)}")
+        if flag:
+            lines.append(f"🚩 Flagged for human review: {guard.get('flag_reason', '')}")
+        lines += ["", "Score Breakdown:"]
         for s in self.scores.get("scores", []):
             adj = " [RAI-adjusted]" if s.get("rai_adjusted") else ""
             lines.append(
@@ -72,7 +80,6 @@ class GradeReport:
         lines += [
             "",
             f"Privacy: {self.privacy_report.get('privacy_report', 'N/A')}",
-            f"Guardrails: {'PASSED' if self.guardrail_report.get('passes_guardrails') else 'FAILED'}",
             "",
             "--- FEEDBACK ---",
             self.feedback,
@@ -82,6 +89,8 @@ class GradeReport:
     def to_dict(self) -> dict:
         return {
             "student": self.student_label,
+            "document_format": self.document_info.get("format"),
+            "images_analyzed": self.document_info.get("image_count", 0),
             "total_points": self.total_points,
             "total_possible": self.total_possible,
             "percentage": self.percentage,
@@ -89,67 +98,79 @@ class GradeReport:
             "overall_confidence": self.scores.get("overall_confidence"),
             "rai_approved": self.rai_report.get("rai_approved"),
             "score_breakdown": self.scores.get("scores", []),
-            "privacy_report": self.privacy_report.get("privacy_report"),
             "guardrail_warnings": self.guardrail_report.get("warnings", []),
+            "flag_for_review": self.guardrail_report.get("flag_for_human_review", False),
             "feedback": self.feedback,
-            "halted": self.halted,
-            "halt_reason": self.halt_reason,
         }
 
 
 def grade(
-    submission_text: str,
+    document_path: str | None = None,
+    submission_text: str = "",
     student_label: str = "Student",
-    image_path: str | None = None,
 ) -> GradeReport:
+    """
+    Grade a submission from a document file (PDF/DOCX/image) and/or pasted text.
+    If document_path is provided, text and images are extracted from the file.
+    submission_text can supplement or replace document content.
+    Grading always runs to completion — guardrails are advisory only.
+    """
     client = anthropic.Anthropic()
     rubric = get_rubric(RUBRIC_PATH)
 
+    # ── Document loading ────────────────────────────────────────────────────
+    doc_info = {"text": "", "images": [], "image_count": 0, "page_count": None, "format": "text"}
+    if document_path:
+        print(f"[0/7] Loading document: {Path(document_path).name}...")
+        doc_info = load_document(document_path)
+        print(f"       Extracted {len(doc_info['text'].split())} words, "
+              f"{doc_info['image_count']} image(s) from {doc_info['format'].upper()}")
+
+    # Merge document text with any additional pasted text
+    combined_text = "\n\n".join(
+        t for t in [doc_info["text"], submission_text] if t.strip()
+    )
+    images = doc_info.get("images", [])
+
+    # ── Privacy scrub ───────────────────────────────────────────────────────
     print(f"[1/7] Privacy scrub...")
-    privacy = scrub(client, submission_text)
+    privacy = scrub(client, combined_text)
     clean_text = privacy["scrubbed_text"]
 
+    # ── Context ─────────────────────────────────────────────────────────────
     print(f"[2/7] Building context...")
     context = build_context(RUBRIC_PATH)
 
-    print(f"[3/7] Guardrail validation...")
+    # ── Guardrails (advisory — never halts) ─────────────────────────────────
+    print(f"[3/7] Guardrail check (advisory)...")
     guardrails = validate(client, clean_text, context)
+    warnings = guardrails.get("warnings", [])
+    if warnings:
+        print(f"       ⚠ Warnings (grading continues): {'; '.join(warnings)}")
+    if guardrails.get("flag_for_human_review"):
+        print(f"       🚩 Flagged for human review: {guardrails.get('flag_reason')}")
 
-    if not guardrails.get("passes_guardrails", True):
-        reason = (
-            f"Submission did not pass guardrails. "
-            f"Reason: {guardrails.get('flag_reason') or ', '.join(guardrails.get('warnings', ['unknown']))}"
-        )
-        print(f"  ⚠ HALTED — {reason}")
-        return GradeReport(
-            student_label=student_label,
-            privacy_report=privacy,
-            guardrail_report=guardrails,
-            analysis="",
-            scores={"total_points": 0, "total_possible": rubric["total_points"], "scores": []},
-            rai_report={},
-            feedback="",
-            halted=True,
-            halt_reason=reason,
-        )
+    # ── Analysis — multimodal (text + all embedded images) ──────────────────
+    print(f"[4/7] Analyzing submission ({len(images)} image(s))...")
+    analysis = analyze(client, clean_text, context, images)
 
-    print(f"[4/7] Analyzing submission...")
-    image_b64 = load_image(image_path) if image_path else None
-    analysis = analyze(client, clean_text, context, image_b64)
-
+    # ── XAI Scoring ─────────────────────────────────────────────────────────
     print(f"[5/7] Scoring with XAI...")
     scores = score(client, analysis, clean_text, context, rubric)
 
-    print(f"[6/7] RAI review...")
+    # ── RAI Audit ───────────────────────────────────────────────────────────
+    print(f"[6/7] RAI fairness audit...")
     rai = review(client, scores, clean_text, context)
     scores = apply_adjustments(scores, rai)
 
+    # ── Feedback ────────────────────────────────────────────────────────────
     print(f"[7/7] Generating feedback...")
     feedback = generate(client, clean_text, analysis, scores, rai, context)
 
-    print(f"    Done — {scores['total_points']}/{scores['total_possible']}")
+    print(f"    ✓ Complete — {scores['total_points']}/{scores['total_possible']} ({_letter(scores['total_points']/scores['total_possible']*100)})")
     return GradeReport(
         student_label=student_label,
+        document_info=doc_info,
         privacy_report=privacy,
         guardrail_report=guardrails,
         analysis=analysis,

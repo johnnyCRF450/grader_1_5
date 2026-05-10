@@ -54,8 +54,9 @@ Return JSON exactly:
   "warnings": ["list of concerns, empty if none"]
 }}
 
-passes_guardrails is false if: not relevant, algorithm_count < {MINIMUM_ALGORITHMS}, word_count < {MINIMUM_WORDS}, or inappropriate_content is true.
-flag_for_human_review is true if: borderline algorithm count, ambiguous relevance, or possible integrity concern.""",
+IMPORTANT: passes_guardrails is ALWAYS true — grading continues regardless of issues found.
+Use warnings to surface concerns. flag_for_human_review if: algorithm_count < {MINIMUM_ALGORITHMS},
+relevance is questionable, or possible integrity concern. Never set passes_guardrails to false.""",
             }
         ],
     )
