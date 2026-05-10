@@ -1,0 +1,112 @@
+{
+  "assignment": "1.5 — ML Algorithm Visual Framework (Portfolio Artifact)",
+  "total_points": 75,
+  "thresholds": {
+    "excellent": 69,
+    "competent": 61,
+    "needs_improvement": 54,
+    "inadequate": 0
+  },
+  "grading_note": "This assignment requires a VISUAL infographic/framework plus a written reflection. Students submit an image or link plus text. Grade the visual on its described/visible content and the reflection on writing quality. Require 8-10 algorithms minimum.",
+  "criteria": [
+    {
+      "id": "clarity_organization",
+      "name": "Clarity and Organization",
+      "max_points": 10,
+      "levels": {
+        "excellent":          {"points": 10, "description": "Exceptionally clear, well-organized, immediately comprehensible. Logical arrangement with excellent visual hierarchy. Layout enhances understanding of relationships."},
+        "competent":          {"points": 9,  "description": "Clear and organized with good visual hierarchy. Layout generally supports understanding of relationships."},
+        "needs_improvement":  {"points": 8,  "description": "Basic organization but lacks clarity in some areas. Visual hierarchy present but inconsistent. Layout may cause some confusion."},
+        "inadequate":         {"points": 6,  "description": "Disorganized, cluttered, or confusing. Lacks visual hierarchy. Layout obscures rather than clarifies relationships."}
+      }
+    },
+    {
+      "id": "visual_appeal",
+      "name": "Visual Appeal and Professionalism",
+      "max_points": 8,
+      "levels": {
+        "excellent":          {"points": 8, "description": "Excellent design principles with consistent color, typography, and visual elements. Highly professional, polished, visually engaging and memorable."},
+        "competent":          {"points": 7, "description": "Good design principles with mostly consistent color, typography, and visual elements. Professional with minor inconsistencies."},
+        "needs_improvement":  {"points": 6, "description": "Basic design principles with noticeable inconsistencies. Somewhat professional but needs refinement."},
+        "inadequate":         {"points": 4, "description": "Lacks basic design principles. Inconsistent or inappropriate color, typography, visual elements. Unprofessional appearance."}
+      }
+    },
+    {
+      "id": "technical_execution",
+      "name": "Technical Execution",
+      "max_points": 7,
+      "levels": {
+        "excellent":          {"points": 7, "description": "Flawless execution. No spelling or grammatical errors. All elements properly aligned, sized, formatted. Appropriate resolution and format."},
+        "competent":          {"points": 6, "description": "Good execution with minimal errors. Elements generally well-aligned, sized, and formatted. Appropriate resolution and format."},
+        "needs_improvement":  {"points": 5, "description": "Adequate execution with some noticeable errors. Some alignment, sizing, or formatting issues. Resolution or format may be less than ideal."},
+        "inadequate":         {"points": 4, "description": "Poor execution with numerous errors. Significant alignment, sizing, or formatting problems. Inappropriate resolution or format."}
+      }
+    },
+    {
+      "id": "classification_accuracy",
+      "name": "Classification Accuracy",
+      "max_points": 10,
+      "levels": {
+        "excellent":          {"points": 10, "description": "Classified with exceptional accuracy and insight. Categories perfectly appropriate, demonstrating sophisticated understanding. Classification reveals deep patterns and relationships."},
+        "competent":          {"points": 9,  "description": "Classified accurately with appropriate categories demonstrating good understanding. Classification reveals some meaningful patterns and relationships."},
+        "needs_improvement":  {"points": 8,  "description": "Classified with basic accuracy. Categories generally appropriate but may show limited understanding. Few meaningful patterns revealed."},
+        "inadequate":         {"points": 7,  "description": "Classified inaccurately or inappropriately. Categories demonstrate misunderstanding of the material. Fails to reveal meaningful patterns."}
+      }
+    },
+    {
+      "id": "representation_relationships",
+      "name": "Representation of Relationships",
+      "max_points": 8,
+      "levels": {
+        "excellent":          {"points": 8, "description": "Exceptionally represents relationships, connections, and/or differences. Visualization type perfectly suits the content and analysis goals."},
+        "competent":          {"points": 7, "description": "Effectively represents most relationships and connections. Visualization type generally suits the content and analysis goals."},
+        "needs_improvement":  {"points": 6, "description": "Represents some basic relationships but misses important connections or differences. Visualization type adequate but not ideal."},
+        "inadequate":         {"points": 5, "description": "Fails to represent meaningful relationships. Visualization type inappropriate for the content or analysis goals."}
+      }
+    },
+    {
+      "id": "comprehensiveness",
+      "name": "Comprehensiveness",
+      "max_points": 7,
+      "levels": {
+        "excellent":          {"points": 7, "description": "Comprehensively captures all relevant content and relationships. No important elements omitted. Level of detail perfectly appropriate."},
+        "competent":          {"points": 6, "description": "Captures most relevant content and relationships. Few minor elements may be omitted. Level of detail generally appropriate."},
+        "needs_improvement":  {"points": 5, "description": "Captures basic content but omits several relevant elements or connections. Level of detail inconsistent or sometimes inappropriate."},
+        "inadequate":         {"points": 4, "description": "Omits significant content or critical relationships. Level of detail insufficient or inappropriate for assignment goals."}
+      }
+    },
+    {
+      "id": "classification_explanation",
+      "name": "Explanation of Classification Process",
+      "max_points": 8,
+      "levels": {
+        "excellent":          {"points": 8, "description": "Exceptional explanation of classification process with clear rationale for categories and sorting. Demonstrates sophisticated critical thinking and metacognition."},
+        "competent":          {"points": 7, "description": "Good explanation with adequate rationale for categories and sorting decisions. Demonstrates solid critical thinking."},
+        "needs_improvement":  {"points": 6, "description": "Basic explanation but limited rationale for categories or sorting. Demonstrates some critical thinking."},
+        "inadequate":         {"points": 5, "description": "Minimal or no explanation of process. Lacks rationale for categories. Shows little to no critical thinking."}
+      }
+    },
+    {
+      "id": "reflection",
+      "name": "Reflection on Learning",
+      "max_points": 9,
+      "levels": {
+        "excellent":          {"points": 9, "description": "Exceptional insight into personal learning process and outcomes. Thoughtfully discusses challenges, strategies, and knowledge gained. Makes meaningful connections to course concepts and broader applications."},
+        "competent":          {"points": 8, "description": "Good insight into learning process and outcomes. Discusses most challenges, strategies, and knowledge gained. Makes some connections to course concepts."},
+        "needs_improvement":  {"points": 7, "description": "Basic awareness of learning process. Mentions some challenges or knowledge gained but limited depth. Few connections to course concepts."},
+        "inadequate":         {"points": 6, "description": "Superficial or missing. Fails to meaningfully discuss learning process, challenges, or knowledge gained. No connections to course concepts."}
+      }
+    },
+    {
+      "id": "writing_quality",
+      "name": "Writing Quality",
+      "max_points": 8,
+      "levels": {
+        "excellent":          {"points": 8, "description": "Exceptional writing with clear, concise, well-organized prose. Flawless grammar, spelling, and mechanics. Professional tone. Properly formatted with effective headings, paragraphs, and transitions."},
+        "competent":          {"points": 7, "description": "Good writing with mostly clear and organized prose. Few errors. Appropriate tone and style. Generally well-formatted."},
+        "needs_improvement":  {"points": 6, "description": "Adequate writing with some clarity issues. Several errors. Inconsistent tone. Formatting needs improvement."},
+        "inadequate":         {"points": 5, "description": "Poor writing with significant clarity issues. Numerous errors. Inappropriate tone. Poor formatting."}
+      }
+    }
+  ]
+}
