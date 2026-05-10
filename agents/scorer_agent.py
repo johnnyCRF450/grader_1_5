@@ -1,6 +1,7 @@
 """
-Scorer Agent — grades each rubric criterion with full XAI transparency:
-confidence scores, direct evidence citations, and counterfactual reasoning.
+Scorer Agent — grades each rubric criterion with full XAI transparency.
+Accepts instructor correction examples (RL few-shot) to calibrate scoring
+to the instructor's grading style over time.
 """
 
 import json
@@ -13,6 +14,7 @@ def score(
     submission_text: str,
     context: str,
     rubric: dict,
+    rl_examples: str = "",          # formatted few-shot block from rl_corrections
 ) -> dict:
     criteria_json = json.dumps(rubric["criteria"], indent=2)
 
@@ -27,12 +29,13 @@ XAI principles to follow:
 - Assign a confidence score (0.0–1.0) reflecting how clear-cut the evidence is
 - Provide counterfactual reasoning: what would the student need to do to earn the next level up?
 - Note any uncertainty or ambiguity that influenced your decision
-
+{rl_examples}
 {context}""",
         messages=[
             {
                 "role": "user",
                 "content": f"""Score this submission against every rubric criterion with full XAI transparency.
+{f"Apply the instructor calibration examples above when scoring." if rl_examples else ""}
 
 SUBMISSION ANALYSIS:
 {analysis}

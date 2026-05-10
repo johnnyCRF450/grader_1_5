@@ -21,6 +21,8 @@ from agents.analyzer_agent import analyze
 from agents.scorer_agent import score
 from agents.rai_agent import review, apply_adjustments
 from agents.feedback_agent import generate, _letter
+from grades_store import save as save_grade
+from rl_corrections import get_all_examples, format_few_shot_block
 
 RUBRIC_PATH = Path(__file__).parent / "rubric.json"
 
@@ -154,9 +156,12 @@ def grade(
     print(f"[4/7] Analyzing submission ({len(images)} image(s))...")
     analysis = analyze(client, clean_text, context, images)
 
-    # ── XAI Scoring ─────────────────────────────────────────────────────────
+    # ── XAI Scoring (with RL calibration examples) ──────────────────────────
     print(f"[5/7] Scoring with XAI...")
-    scores = score(client, analysis, clean_text, context, rubric)
+    rl_examples = format_few_shot_block(get_all_examples())
+    if rl_examples:
+        print(f"       RL: {len(get_all_examples())} instructor correction(s) injected")
+    scores = score(client, analysis, clean_text, context, rubric, rl_examples)
 
     # ── RAI Audit ───────────────────────────────────────────────────────────
     print(f"[6/7] RAI fairness audit...")
@@ -168,7 +173,7 @@ def grade(
     feedback = generate(client, clean_text, analysis, scores, rai, context)
 
     print(f"    ✓ Complete — {scores['total_points']}/{scores['total_possible']} ({_letter(scores['total_points']/scores['total_possible']*100)})")
-    return GradeReport(
+    report = GradeReport(
         student_label=student_label,
         document_info=doc_info,
         privacy_report=privacy,
@@ -178,3 +183,4 @@ def grade(
         rai_report=rai,
         feedback=feedback,
     )
+    save_grade(report)
